@@ -304,6 +304,18 @@ public class BridgeSerializationUtils {
         return new LockWhitelist(deserializeBtcAddresses(data, parameters));
     }
 
+    public static byte[] serializeCoin(Coin feePerKb) {
+        return RLP.encodeBigInteger(BigInteger.valueOf(feePerKb.getValue()));
+    }
+
+    public static Coin deserializeCoin(byte[] data, Coin fallback) {
+        if (data == null || data.length == 0) {
+            return fallback;
+        }
+
+        return Coin.valueOf(RLP.decodeBigInteger(data, 0).longValueExact());
+    }
+
     public static byte[] serializeFeePerKbElection(FeePerKbElection feePerKbElection) {
         // there's no election running when getFeePerKb is null
         Coin feePerKb = feePerKbElection.getFeePerKb();
@@ -311,7 +323,7 @@ public class BridgeSerializationUtils {
             return RLP.encodeList();
         }
 
-        byte[] serializedFeePerKb = RLP.encodeBigInteger(BigInteger.valueOf(feePerKb.getValue()));
+        byte[] serializedFeePerKb = serializeCoin(feePerKb);
         byte[] serializedVotes = serializeVoters(feePerKbElection.getVotes());
         return RLP.encodeList(serializedFeePerKb, serializedVotes);
     }
@@ -345,7 +357,7 @@ public class BridgeSerializationUtils {
 
         for (ReleaseRequestQueue.Entry entry : entries) {
             bytes[n++] = RLP.encodeElement(entry.getDestination().getHash160());
-            bytes[n++] = RLP.encodeBigInteger(BigInteger.valueOf(entry.getAmount().getValue()));
+            bytes[n++] = serializeCoin(entry.getAmount());
         }
 
         return RLP.encodeList(bytes);

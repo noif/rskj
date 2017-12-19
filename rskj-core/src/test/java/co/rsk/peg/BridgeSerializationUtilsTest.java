@@ -790,6 +790,23 @@ public class BridgeSerializationUtilsTest {
         assertThat(deserialized.getWinner().isPresent(), is(false));
     }
 
+    @Test
+    public void serializeDeserializeCoin() {
+        byte[] serialized1 = BridgeSerializationUtils.serializeCoin(Coin.COIN);
+        assertThat(BridgeSerializationUtils.deserializeCoin(serialized1, Coin.ZERO),
+                is(Coin.COIN));
+        byte[] serialized2 = BridgeSerializationUtils.serializeCoin(Coin.valueOf(Long.MAX_VALUE));
+        assertThat(BridgeSerializationUtils.deserializeCoin(serialized2, Coin.ZERO),
+                is(Coin.valueOf(Long.MAX_VALUE)));
+        byte[] serialized3 = BridgeSerializationUtils.serializeCoin(Coin.ZERO);
+        assertThat(BridgeSerializationUtils.deserializeCoin(serialized3, Coin.CENT),
+                is(Coin.ZERO));
+        assertThat(BridgeSerializationUtils.deserializeCoin(null, Coin.SATOSHI),
+                is(Coin.SATOSHI));
+        assertThat(BridgeSerializationUtils.deserializeCoin(new byte[0], Coin.MICROCOIN),
+                is(Coin.MICROCOIN));
+    }
+
     private Address mockAddressHash160(String hash160) {
         Address result = mock(Address.class);
         when(result.getHash160()).thenReturn(Hex.decode(hash160));
