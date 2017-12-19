@@ -304,6 +304,33 @@ public class BridgeSerializationUtils {
         return new LockWhitelist(deserializeBtcAddresses(data, parameters));
     }
 
+    public static byte[] serializeFeePerKbElection(FeePerKbElection feePerKbElection) {
+        // there's no election running when getFeePerKb is null
+        Coin feePerKb = feePerKbElection.getFeePerKb();
+        if (feePerKb == null) {
+            return RLP.encodeList();
+        }
+
+        byte[] serializedFeePerKb = RLP.encodeBigInteger(BigInteger.valueOf(feePerKb.getValue()));
+        byte[] serializedVotes = serializeVoters(feePerKbElection.getVotes());
+        return RLP.encodeList(serializedFeePerKb, serializedVotes);
+    }
+
+    public static FeePerKbElection deserializeFeePerKbElection(byte[] data, AddressBasedAuthorizer authorizer) {
+        if (data == null || data.length == 0) {
+            return new FeePerKbElection(authorizer);
+        }
+
+        RLPList rlpList = (RLPList)RLP.decode2(data).get(0);
+        if (rlpList.isEmpty()) {
+            return new FeePerKbElection(authorizer);
+        }
+
+        Coin feePerKb = Coin.valueOf(BigIntegers.fromUnsignedByteArray(rlpList.get(0).getRLPData()).longValue());
+        Set<TxSender> votes = new HashSet<>(deserializeVoters(rlpList.get(1).getRLPData()));
+        return new FeePerKbElection(authorizer, votes, feePerKb);
+    }
+
     // A ReleaseRequestQueue is serialized as follows:
     // [address_1, amount_1, ..., address_n, amount_n]
     // with address_i being the encoded bytes of each btc address
@@ -475,10 +502,10 @@ public class BridgeSerializationUtils {
                 .collect(Collectors.toList());
     }
 
-    // A list of voters is serialized as
+    // A collection of voters is serialized as
     // [voterBytes1, voterBytes2, ..., voterBytesn], sorted
     // using the lexicographical order of the voters' unsigned bytes
-    private static byte[] serializeVoters(List<TxSender> voters) {
+    private static byte[] serializeVoters(Collection<TxSender> voters) {
         List<byte[]> encodedKeys = voters.stream()
                 .sorted((TxSender v1, TxSender v2) ->
                         UnsignedBytes.lexicographicalComparator().compare(v1.getBytes(), v2.getBytes())

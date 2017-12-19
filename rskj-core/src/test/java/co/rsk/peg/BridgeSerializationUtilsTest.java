@@ -39,14 +39,15 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyVararg;
 import static org.mockito.Mockito.mock;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @RunWith(PowerMockRunner.class)
+@PrepareForTest({ RLP.class })
 public class BridgeSerializationUtilsTest {
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeMapOfHashesToLong() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -80,7 +81,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(BridgeSerializationUtils.deserializeMapOfHashesToLong(new byte[]{}), new HashMap<>());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void desserializeMapOfHashesToLong_nonEmpty() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -94,7 +94,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(123L, result.get(Sha256Hash.wrap(charNTimes('a', 64))).longValue());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void desserializeMapOfHashesToLong_nonEmptyOddSize() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -110,7 +109,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertTrue(thrown);
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeFederation() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -153,7 +151,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertTrue(Arrays.equals(expected, result));
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void desserializeFederation_ok() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -183,14 +180,13 @@ public class BridgeSerializationUtilsTest {
         Assert.assertEquals(5000, deserializedFederation.getCreationTime().toEpochMilli());
         Assert.assertEquals(4, deserializedFederation.getNumberOfSignaturesRequired());
         Assert.assertEquals(6, deserializedFederation.getPublicKeys().size());
-        Assert.assertThat(deserializedFederation.getCreationBlockNumber(), is(42L));
+        assertThat(deserializedFederation.getCreationBlockNumber(), is(42L));
         for (int i = 0; i < 6; i++) {
             Assert.assertTrue(Arrays.equals(publicKeyBytes[i], deserializedFederation.getPublicKeys().get(i).getPubKey()));
         }
         Assert.assertEquals(NetworkParameters.fromID(NetworkParameters.ID_REGTEST), deserializedFederation.getBtcParams());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void desserializeFederation_wrongListSize() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -218,7 +214,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertTrue(thrown);
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializePendingFederation() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -255,7 +250,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertTrue(Arrays.equals(expected, result));
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializePendingFederation() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -282,7 +276,6 @@ public class BridgeSerializationUtilsTest {
         }
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeElection() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -340,7 +333,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertEquals(0, election.getVotes().size());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeElection_nonEmpty() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -426,7 +418,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertEquals(voters, election.getVotes().get(spec));
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeElection_unevenOuterList() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -452,7 +443,6 @@ public class BridgeSerializationUtilsTest {
         Assert.fail();
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeElection_invalidCallSpec() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -481,7 +471,6 @@ public class BridgeSerializationUtilsTest {
         Assert.fail();
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeLockWhitelist() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -515,7 +504,6 @@ public class BridgeSerializationUtilsTest {
         Assert.assertTrue(Arrays.equals(expected, result));
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeLockWhitelist() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -573,10 +561,9 @@ public class BridgeSerializationUtilsTest {
 
         byte[] result = BridgeSerializationUtils.serializeFederation(federation);
         Federation deserializedFederation = BridgeSerializationUtils.deserializeFederation(result, new Context(networkParms));
-        Assert.assertThat(federation, is(deserializedFederation));
+        assertThat(federation, is(deserializedFederation));
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeRequestQueue() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -612,7 +599,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(0, BridgeSerializationUtils.deserializeReleaseRequestQueue(new byte[]{}, NetworkParameters.fromID(NetworkParameters.ID_REGTEST)).getEntries().size());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeRequestQueue_nonEmpty() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -643,7 +629,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(expectedEntries, entries);
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeRequestQueue_nonEmptyOddSize() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -658,7 +643,6 @@ public class BridgeSerializationUtilsTest {
         Assert.fail();
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void serializeTransactionSet() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -694,7 +678,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(0, BridgeSerializationUtils.deserializeReleaseTransactionSet(new byte[]{}, NetworkParameters.fromID(NetworkParameters.ID_REGTEST)).getEntries().size());
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeTransactionSet_nonEmpty() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -749,7 +732,6 @@ public class BridgeSerializationUtilsTest {
         assertEquals(expectedEntries, entries);
     }
 
-    @PrepareForTest({ RLP.class })
     @Test
     public void deserializeTransactionSet_nonEmptyOddSize() throws Exception {
         PowerMockito.mockStatic(RLP.class);
@@ -762,6 +744,50 @@ public class BridgeSerializationUtilsTest {
             return;
         }
         Assert.fail();
+    }
+
+    @Test
+    public void serializeDeserializeFeePerKbElection_empty() throws Exception {
+        AddressBasedAuthorizer mockedAuthorizer = mock(AddressBasedAuthorizer.class);
+        FeePerKbElection sample = new FeePerKbElection(mockedAuthorizer);
+
+        assertThat(sample.getFeePerKb(), is((Coin) null));
+        assertThat(sample.getVotes().isEmpty(), is(true));
+        assertThat(sample.getWinner().isPresent(), is(false));
+
+        byte[] serialized = BridgeSerializationUtils.serializeFeePerKbElection(sample);
+        FeePerKbElection deserialized = BridgeSerializationUtils.deserializeFeePerKbElection(serialized, mockedAuthorizer);
+
+        assertThat(deserialized.getFeePerKb(), is((Coin) null));
+        assertThat(deserialized.getVotes().isEmpty(), is(true));
+        assertThat(deserialized.getWinner().isPresent(), is(false));
+    }
+
+    @Test
+    public void serializeDeserializeFeePerKbElection_withVotes() throws Exception {
+        AddressBasedAuthorizer mockedAuthorizer = mock(AddressBasedAuthorizer.class);
+        when(mockedAuthorizer.isAuthorized(any(TxSender.class))).thenReturn(true);
+        when(mockedAuthorizer.getRequiredAuthorizedKeys())
+                .thenReturn(5);
+
+        Set<TxSender> sampleVotes = new HashSet<>();
+        sampleVotes.add(new TxSender(Hex.decode("8899")));
+        sampleVotes.add(new TxSender(Hex.decode("ccdd")));
+        sampleVotes.add(new TxSender(Hex.decode("fa")));
+        Coin sampleFee = Coin.CENT;
+
+        FeePerKbElection sample = new FeePerKbElection(mockedAuthorizer, sampleVotes, sampleFee);
+
+        assertThat(sample.getFeePerKb(), is(sampleFee));
+        assertThat(sample.getVotes(), is(sampleVotes));
+        assertThat(sample.getWinner().isPresent(), is(false));
+
+        byte[] serialized = BridgeSerializationUtils.serializeFeePerKbElection(sample);
+        FeePerKbElection deserialized = BridgeSerializationUtils.deserializeFeePerKbElection(serialized, mockedAuthorizer);
+
+        assertThat(deserialized.getFeePerKb(), is(sampleFee));
+        assertThat(deserialized.getVotes(), is(sampleVotes));
+        assertThat(deserialized.getWinner().isPresent(), is(false));
     }
 
     private Address mockAddressHash160(String hash160) {
