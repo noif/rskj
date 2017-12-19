@@ -415,8 +415,11 @@ public class BridgeSupport {
         return true;
     }
 
-    private Coin getFeePerKb() {
-        return Coin.MILLICOIN;
+    /**
+     * @return Current fee per kb in BTC.
+     */
+    public Coin getFeePerKb() {
+        return provider.getFeePerKb();
     }
 
     /**
@@ -1456,6 +1459,32 @@ public class BridgeSupport {
      */
     public Coin getMinimumLockTxValue() {
         return bridgeConstants.getMinimumLockTxValue();
+    }
+
+    /**
+     * Votes for a fee per kb value.
+     *
+     * @return 2 upon successful vote with election winner,
+     * 1 upon successful vote without winner,
+     * -1 when the vote failed.
+     */
+    public Integer voteFeePerKbChange(Transaction tx, Coin feePerKb) {
+        TxSender voter = TxSender.fromTx(tx);
+        FeePerKbElection feePerKbElection = provider.getFeePerKbElection(bridgeConstants.getFeePerKbChangeAuthorizer());
+        boolean successfulVote = feePerKbElection.vote(voter, feePerKb);
+        if (!successfulVote) {
+            return -1;
+        }
+
+        Optional<Coin> winner = feePerKbElection.getWinner();
+        if (!winner.isPresent()) {
+            return 1;
+        }
+
+        Coin winnerFee = winner.get();
+        provider.setFeePerKb(winnerFee);
+        feePerKbElection.clear();
+        return 2;
     }
 
     /**
