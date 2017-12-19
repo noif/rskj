@@ -47,6 +47,8 @@ public class BridgeConstants {
 
     protected AddressBasedAuthorizer lockWhitelistChangeAuthorizer;
 
+    protected AddressBasedAuthorizer feePerKbChangeAuthorizer;
+
     public NetworkParameters getBtcParams() {
         return NetworkParameters.fromID(btcParamsString);
     }
@@ -92,4 +94,6 @@ public class BridgeConstants {
     public AddressBasedAuthorizer getFederationChangeAuthorizer() { return federationChangeAuthorizer; }
 
     public AddressBasedAuthorizer getLockWhitelistChangeAuthorizer() { return lockWhitelistChangeAuthorizer; }
+
+    public AddressBasedAuthorizer getFeePerKbChangeAuthorizer() { return feePerKbChangeAuthorizer; }
 }
