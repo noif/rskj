@@ -45,6 +45,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,6 +55,7 @@ import static org.mockito.Mockito.when;
  * Created by ajlopez on 6/7/2016.
  */
 @RunWith(PowerMockRunner.class)
+@PrepareForTest({ BridgeSerializationUtils.class })
 public class BridgeStorageProviderTest {
     private NetworkParameters networkParameters = RskSystemProperties.CONFIG.getBlockchainConfig().getCommonConstants().getBridgeConstants().getBtcParams();
     private int transactionOffset;
@@ -100,6 +103,7 @@ public class BridgeStorageProviderTest {
         provider0.getRskTxsWaitingForSignatures();
         provider0.getActiveFederationBtcUTXOs();
         provider0.getRetiringFederationBtcUTXOs();
+        provider0.getFeePerKb();
         provider0.save();
         track.commit();
 
@@ -114,6 +118,7 @@ public class BridgeStorageProviderTest {
         Assert.assertNotNull(repository.getStorageBytes(contractAddress, new DataWord("rskTxsWaitingFS".getBytes())));
         Assert.assertNotNull(repository.getStorageBytes(contractAddress, new DataWord("activeFederationBtcUTXOs".getBytes())));
         Assert.assertNotNull(repository.getStorageBytes(contractAddress, new DataWord("retiringFederationBtcUTXOs".getBytes())));
+        Assert.assertNotNull(repository.getStorageBytes(contractAddress, new DataWord("feePerKb".getBytes())));
 
         BridgeStorageProvider provider = new BridgeStorageProvider(track, PrecompiledContracts.BRIDGE_ADDR, RskSystemProperties.CONFIG.getBlockchainConfig().getCommonConstants().getBridgeConstants());
 
@@ -146,6 +151,11 @@ public class BridgeStorageProviderTest {
 
         Assert.assertNotNull(retiringUtxos);
         Assert.assertTrue(retiringUtxos.isEmpty());
+
+        Coin feePerKb = provider.getFeePerKb();
+
+        Assert.assertNotNull(feePerKb);
+        Assert.assertEquals(Coin.MILLICOIN, feePerKb);
     }
 
     @Test
@@ -238,7 +248,6 @@ public class BridgeStorageProviderTest {
         Assert.assertTrue(utxos.get(1).getHash().equals(hash2));
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getActiveFederation() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -273,7 +282,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(2, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getActiveFederation_nullBytes() throws IOException {
         List<Integer> storageBytesCalls = new ArrayList<>();
@@ -304,7 +312,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(0, deserializeCalls.size()); // 2 for the calls to getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void saveNewFederation() throws IOException {
         Federation newFederation = new Federation(Arrays.asList(new BtcECKey[]{BtcECKey.fromPrivate(BigInteger.valueOf(100))}), Instant.ofEpochMilli(1000), 0L, NetworkParameters.fromID(NetworkParameters.ID_REGTEST));
@@ -342,7 +349,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(1, serializeCalls.size());
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getFederationElection_nonNullBytes() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -375,7 +381,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(2, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getFederationElection_nullBytes() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -405,7 +410,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(1, calls.size()); // getStorageBytes is the only one called (can't be the other way around)
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void saveFederationElection() throws IOException {
         ABICallElection electionMock = mock(ABICallElection.class);
@@ -443,7 +447,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(1, serializeCalls.size());
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getLockWhitelist_nonNullBytes() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -478,7 +481,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(2, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getLockWhitelist_nullBytes() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -509,7 +511,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(1, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void saveLockWhitelist() throws IOException {
         LockWhitelist whitelistMock = mock(LockWhitelist.class);
@@ -547,7 +548,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(1, serializeCalls.size());
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getReleaseRequestQueue() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -579,7 +579,6 @@ public class BridgeStorageProviderTest {
         Assert.assertEquals(2, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
     }
 
-    @PrepareForTest({ BridgeSerializationUtils.class })
     @Test
     public void getReleaseTransactionSet() throws IOException {
         List<Integer> calls = new ArrayList<>();
@@ -609,6 +608,46 @@ public class BridgeStorageProviderTest {
 
         Assert.assertSame(transactionSetMock, storageProvider.getReleaseTransactionSet());
         Assert.assertEquals(2, calls.size()); // 1 for each call to deserializeFederation & getStorageBytes
+    }
+
+    @Test
+    public void setFeePerKb_savedAndRecreated() {
+        Repository repository = new RepositoryImpl();
+        Repository track = repository.startTracking();
+
+        BridgeStorageProvider provider0 = new BridgeStorageProvider(track, PrecompiledContracts.BRIDGE_ADDR, RskSystemProperties.CONFIG.getBlockchainConfig().getCommonConstants().getBridgeConstants());
+
+        Coin expectedCoin = Coin.valueOf(5325);
+        provider0.setFeePerKb(expectedCoin);
+        provider0.saveFeePerKb();
+        track.commit();
+
+        track = repository.startTracking();
+
+        BridgeStorageProvider provider = new BridgeStorageProvider(track, PrecompiledContracts.BRIDGE_ADDR, RskSystemProperties.CONFIG.getBlockchainConfig().getCommonConstants().getBridgeConstants());
+
+        assertThat(provider.getFeePerKb(), is(expectedCoin));
+    }
+
+    @Test
+    public void getFeePerKbElection_nonNullBytes() {
+        AddressBasedAuthorizer authorizerMock = mock(AddressBasedAuthorizer.class);
+        Repository repositoryMock = mock(Repository.class);
+        BridgeStorageProvider storageProvider = new BridgeStorageProvider(repositoryMock, "aabbccdd", RskSystemProperties.CONFIG.getBlockchainConfig().getCommonConstants().getBridgeConstants());
+
+        Coin electionFee = Coin.FIFTY_COINS;
+        HashSet<TxSender> electionVotes = new HashSet<>();
+        byte[] serializedElection = BridgeSerializationUtils.serializeFeePerKbElection(
+                new FeePerKbElection(authorizerMock, electionVotes, electionFee));
+        when(repositoryMock.getStorageBytes(any(byte[].class), any(DataWord.class)))
+                .thenReturn(serializedElection);
+        when(authorizerMock.getRequiredAuthorizedKeys())
+                .thenReturn(1);
+
+        FeePerKbElection result = storageProvider.getFeePerKbElection(authorizerMock);
+        assertThat(result.getVotes(), is(electionVotes));
+        assertThat(result.getFeePerKb(), is(electionFee));
+        assertThat(result.getWinner().isPresent(), is(false));
     }
 
     private BtcTransaction createTransaction() {

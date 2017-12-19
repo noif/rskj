@@ -27,10 +27,7 @@ import org.ethereum.vm.DataWord;
 import org.spongycastle.util.encoders.Hex;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 
 /**
  * Provides an object oriented facade of the bridge contract memory.
@@ -39,6 +36,8 @@ import java.util.SortedMap;
  * @author Oscar Guindzberg
  */
 public class BridgeStorageProvider {
+    public static final Coin STARTING_FEE_PER_KB = Coin.MILLICOIN;
+
     private static final DataWord ACTIVE_FEDERATION_BTC_UTXOS_KEY = new DataWord(TypeConverter.stringToByteArray("activeFederationBtcUTXOs"));
     private static final DataWord RETIRING_FEDERATION_BTC_UTXOS_KEY = new DataWord(TypeConverter.stringToByteArray("retiringFederationBtcUTXOs"));
     private static final DataWord BTC_TX_HASHES_ALREADY_PROCESSED_KEY = new DataWord(TypeConverter.stringToByteArray("btcTxHashesAP"));
@@ -51,6 +50,7 @@ public class BridgeStorageProvider {
     private static final DataWord BRIDGE_FEDERATION_ELECTION_KEY = new DataWord(TypeConverter.stringToByteArray("bridgeFederationElection"));
     private static final DataWord LOCK_WHITELIST_KEY = new DataWord(TypeConverter.stringToByteArray("bridgeLockWhitelist"));
     private static final DataWord FEE_PER_KB_KEY = new DataWord(TypeConverter.stringToByteArray("feePerKb"));
+    private static final DataWord FEE_PER_KB_ELECTION_KEY = new DataWord(TypeConverter.stringToByteArray("feePerKbElection"));
 
     private final Repository repository;
     private final byte[] contractAddress;
@@ -81,6 +81,9 @@ public class BridgeStorageProvider {
     private ABICallElection federationElection;
 
     private LockWhitelist lockWhitelist;
+
+    private Coin feePerKb;
+    private FeePerKbElection feePerKbElection;
 
     public BridgeStorageProvider(Repository repository, String contractAddress, BridgeConstants bridgeConstants) {
         this.repository = repository;
@@ -318,6 +321,48 @@ public class BridgeStorageProvider {
         return lockWhitelist;
     }
 
+    public Coin getFeePerKb() {
+        if (feePerKb != null) {
+            return feePerKb;
+        }
+
+        feePerKb = safeGetFromRepository(FEE_PER_KB_KEY, data -> BridgeSerializationUtils.deserializeCoin(data, STARTING_FEE_PER_KB));
+        return feePerKb;
+    }
+
+    public void setFeePerKb(Coin feePerKb) {
+        this.feePerKb = feePerKb;
+    }
+
+    public void saveFeePerKb() {
+        if (feePerKb == null) {
+            return;
+        }
+
+        safeSaveToRepository(FEE_PER_KB_KEY, feePerKb, BridgeSerializationUtils::serializeCoin);
+    }
+
+    /**
+     * Save the fee per kb election
+     */
+    public void saveFeePerKbElection() {
+        if (feePerKbElection == null) {
+            return;
+        }
+
+        safeSaveToRepository(FEE_PER_KB_ELECTION_KEY, feePerKbElection, BridgeSerializationUtils::serializeFeePerKbElection);
+    }
+
+
+    public FeePerKbElection getFeePerKbElection(AddressBasedAuthorizer authorizer) {
+        if (feePerKbElection != null) {
+            return feePerKbElection;
+        }
+
+        feePerKbElection = safeGetFromRepository(FEE_PER_KB_ELECTION_KEY, data -> BridgeSerializationUtils.deserializeFeePerKbElection(data, authorizer));
+        return feePerKbElection;
+    }
+
     public void save() throws IOException {
         saveBtcTxHashesAlreadyProcessed();
 
@@ -336,6 +381,9 @@ public class BridgeStorageProvider {
         saveFederationElection();
 
         saveLockWhitelist();
+
+        saveFeePerKb();
+        saveFeePerKbElection();
     }
 
     private <T> T safeGetFromRepository(DataWord keyAddress, RepositoryDeserializer<T> deserializer) {
